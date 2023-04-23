@@ -1,5 +1,5 @@
 type Flag* = enum
     S, Z,
-    H, P,
+    H, PV,
     N, C,
 

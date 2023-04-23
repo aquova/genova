@@ -6,6 +6,39 @@ import z80
 
 import ../utils
 
+# Info on z80 flag behavior: https://www.smspower.org/Development/Flags
+proc check_s(value: uint8): bool =
+    return value.testBit(7)
+
+proc check_h_add(a, b: uint8): bool =
+    return (((a and 0xF) + (b and 0xF)) and 0x10) == 0x10
+
+proc check_h_add(a, b: uint16): bool =
+    return (((a and 0xFFF) + (b and 0xFFF)) and 0x1000) == 0x1000
+
+proc check_h_sub(a, b: uint8): bool =
+    return (int(a and 0xF) - int(b and 0xF)) < 0
+
+proc check_p[T: SomeInteger](value: T): bool =
+    return (value.countSetBits() mod 2) == 1
+
+proc check_v(a, b: uint8): bool =
+    let sa = cast[int8](a)
+    let sb = cast[int8](b)
+    let sum = sa + sb
+    return sum < -128 or sum > 127
+
+proc check_c_add[T: SomeUnsignedInt](a, b: T): bool =
+    let sum = int(a) + int(b)
+    return sum > int(high(T))
+
+proc check_c_sub[T: SomeUnsignedInt](a, b: T): bool =
+    let diff = int(a) - int(b)
+    return diff < int(low(T))
+
+# Info on opcode flags from here: https://clrhome.org/table/
+
+# C0VHZS
 proc add_a(z80: var Z80, val: uint8, adc: bool) =
     var carry: uint8 = 0
     if adc and z80.flag(Flag.C):
@@ -13,42 +46,53 @@ proc add_a(z80: var Z80, val: uint8, adc: bool) =
     let a = z80.reg(Reg8.A)
 
     let result1 = a + val
-    let overflowed1 = will_overflow(a, val)
-    let h_check1 = check_h_carry(a, val)
+    let c_check1 = check_c_add(a, val)
+    let h_check1 = check_h_add(a, val)
+    let v_check1 = check_v(a, val)
 
     let result2 = result1 + carry
-    let overflowed2 = will_overflow(result1, carry)
-    let h_check2 = check_h_carry(result1, carry)
+    let c_check2 = check_c_add(result1, carry)
+    let h_check2 = check_h_add(result1, carry)
+    let v_check2 = check_v(result1, carry)
 
     let set_h = h_check1 or h_check2
-    let set_c = overflowed1 or overflowed2
+    let set_c = c_check1 or c_check2
+    let set_v = v_check1 or v_check2
 
-    z80.flag_clear(Flag.N)
     z80.flag_write(Flag.C, set_c)
+    z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.PV, set_v)
     z80.flag_write(Flag.H, set_h)
     z80.flag_write(Flag.Z, result2 == 0)
+    z80.flag_write(Flag.S, check_s(result2))
     z80.reg_write(Reg8.A, result2)
 
+# C0-H--
 proc add(z80: var Z80, reg: Reg16, source: uint16) =
     let target = z80.reg(reg)
     let sum = target + source
-    let overflowed = will_overflow(target, source)
-    let set_h = check_h_carry(target, source)
+    let set_c = check_c_add(target, source)
+    let set_h = check_h_add(target, source)
 
     z80.reg_write(reg, sum)
     z80.flag_clear(Flag.N)
-    z80.flag_write(Flag.C, overflowed)
+    z80.flag_write(Flag.C, set_c)
     z80.flag_write(Flag.H, set_h)
 
+# 00P1ZS
 proc and_a(z80: var Z80, val: uint8) =
     var a = z80.reg(Reg8.A)
     a = a and val
-    z80.flag_clear(Flag.N)
-    z80.flag_set(Flag.H)
+
     z80.flag_clear(Flag.C)
+    z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.PV, check_p(a))
+    z80.flag_set(Flag.H)
     z80.flag_write(Flag.Z, a == 0)
+    z80.flag_write(Flag.S, check_s(a))
     z80.reg_write(Reg8.A, a)
 
+# -0-1Z-
 proc check_bit(z80: var Z80, val: uint8, digit: uint8) =
     let bit = val.test_bit(digit)
 
@@ -56,19 +100,25 @@ proc check_bit(z80: var Z80, val: uint8, digit: uint8) =
     z80.flag_clear(Flag.N)
     z80.flag_set(Flag.H)
 
+# -0-1Z-
 proc check_bit_reg(z80: var Z80, reg: Reg8, digit: uint8) =
     let byte = z80.reg(reg)
     z80.check_bit(byte, digit)
 
+# C1VHZS
 proc cp_a(z80: var Z80, val: uint8) =
     let a = z80.reg(Reg8.A)
-    let set_h = check_h_borrow(a, val)
+    let diff = a - val
+    let set_h = check_h_add(a, val)
 
-    z80.flag_write(Flag.Z, a == val)
+    z80.flag_write(Flag.C, check_c_sub(a, val))
     z80.flag_set(Flag.N)
+    z80.flag_write(Flag.PV, check_v(a, val))
     z80.flag_write(Flag.H, set_h)
-    z80.flag_write(Flag.C, a < val)
+    z80.flag_write(Flag.Z, diff == 0)
+    z80.flag_write(Flag.S, check_s(diff))
 
+# ?-P?ZS
 proc daa(z80: var Z80) =
     var a = int32(z80.reg(Reg8.A))
 
@@ -92,52 +142,74 @@ proc daa(z80: var Z80) =
         z80.flag_set(Flag.C)
 
     a = a and 0xFF
+    z80.flag_write(Flag.PV, check_p(a))
     z80.flag_write(Flag.Z, a == 0)
     z80.reg_write(Reg8.A, uint8(a))
 
+# -NVHZS
 proc dec(z80: var Z80, reg: Reg8) =
     let val = z80.reg(reg)
     let sub = val - 1
-    let set_h = check_h_borrow(val, 1)
+    let set_h = check_h_sub(val, 1)
+    let set_pv = check_v(val, 0xFF)
+    let set_s = check_s(sub)
     z80.reg_write(reg, sub)
+
     z80.flag_set(Flag.N)
     z80.flag_write(Flag.Z, sub == 0)
     z80.flag_write(Flag.H, set_h)
+    z80.flag_write(Flag.PV, set_pv)
+    z80.flag_write(Flag.S, set_s)
 
+# ------
 proc dec(z80: var Z80, reg: Reg16) =
     let val = z80.reg(reg)
     let sum = val + 1
     z80.reg_write(reg, sum)
 
+# -NVHZS
 proc inc(z80: var Z80, reg: Reg8) =
     let val = z80.reg(reg)
     let sum = val + 1
-    let set_h = check_h_carry(val, 1)
+    let set_h = check_h_add(val, 1)
+    let set_pv = check_v(val, 1)
+    let set_s = check_s(sum)
     z80.reg_write(reg, sum)
+
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.Z, sum == 0)
     z80.flag_write(Flag.H, set_h)
+    z80.flag_write(Flag.PV, set_pv)
+    z80.flag_write(Flag.S, set_s)
 
+# ------
 proc inc(z80: var Z80, reg: Reg16) =
     let val = z80.reg(reg)
     let sum = val + 1
     z80.reg_write(reg, sum)
 
+# ------
 proc ld(z80: var Z80, reg: Reg8, val: uint8) =
     z80.reg_write(reg, val)
 
+# ------
 proc ld(z80: var Z80, reg: Reg16, val: uint16) =
     z80.reg_write(reg, val)
 
+# 00P0ZS
 proc or_a(z80: var Z80, val: uint8) =
     var a = z80.reg(Reg8.A)
     a = a or val
+
     z80.flag_clear(Flag.N)
     z80.flag_clear(Flag.H)
     z80.flag_clear(Flag.C)
+    z80.flag_write(Flag.PV, check_p(a))
     z80.flag_write(Flag.Z, a == 0)
+    z80.flag_write(Flag.S, check_s(a))
     z80.reg_write(Reg8.A, a)
 
+# ------
 proc pop(z80: var Z80): uint16 =
     assert(z80.sp != 0xFFFE, "Trying to pop when stack is empty")
     let lo = z80.ram_read(z80.sp)
@@ -145,12 +217,14 @@ proc pop(z80: var Z80): uint16 =
     result = merge_bytes(hi, lo)
     z80.sp = z80.sp + 2
 
+# ------
 proc push(z80: var Z80, val: uint16) =
     let sp = z80.sp - 2
     z80.ram_write(sp + 1, val.hi())
     z80.ram_write(sp, val.lo())
     z80.sp = sp
 
+# C0P0ZS
 proc rot_left(z80: var Z80, byte: uint8, carry: bool): uint8 =
     let msb = byte.test_bit(7)
     var rot = byte.rotate_left_bits(1)
@@ -159,15 +233,19 @@ proc rot_left(z80: var Z80, byte: uint8, carry: bool): uint8 =
         rot.write_bit(0, old_c)
     z80.flag_write(Flag.C, msb)
     z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.PV, check_p(rot))
     z80.flag_clear(Flag.H)
     z80.flag_write(Flag.Z, rot == 0)
+    z80.flag_write(Flag.S, check_s(rot))
     return rot
 
+# C0P0ZS
 proc rot_left_reg(z80: var Z80, reg: Reg8, carry: bool) =
     let val = z80.reg(reg)
     let rot = z80.rot_left(val, carry)
     z80.reg_write(reg, rot)
 
+# C0P0ZS
 proc rot_right(z80: var Z80, byte: uint8, carry: bool): uint8 =
     let lsb = byte.test_bit(0)
     var rot = byte.rotate_right_bits(1)
@@ -176,30 +254,38 @@ proc rot_right(z80: var Z80, byte: uint8, carry: bool): uint8 =
         rot.write_bit(7, old_c)
     z80.flag_write(Flag.C, lsb)
     z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.PV, check_p(rot))
     z80.flag_clear(Flag.H)
     z80.flag_write(Flag.Z, rot == 0)
+    z80.flag_write(Flag.S, check_s(rot))
     return rot
 
+# C0P0ZS
 proc rot_right_reg(z80: var Z80, reg: Reg8, carry: bool) =
     let val = z80.reg(reg)
     let rot = z80.rot_right(val, carry)
     z80.reg_write(reg, rot)
 
+# C0P0ZS
 proc shift_left(z80: var Z80, byte: uint8): uint8 =
     let msb = byte.test_bit(7)
     let shifted = byte shl 1
 
+    z80.flag_write(Flag.S, check_s(shifted))
     z80.flag_write(Flag.Z, shifted == 0)
     z80.flag_clear(Flag.N)
     z80.flag_clear(Flag.H)
+    z80.flag_write(Flag.PV, check_p(shifted))
     z80.flag_write(Flag.C, msb)
     return shifted
 
+# C0P0ZS
 proc shift_left_reg(z80: var Z80, reg: Reg8) =
     let byte = z80.reg(reg)
     let shifted = z80.shift_left(byte)
     z80.reg_write(reg, shifted)
 
+# C0P0ZS
 proc shift_right(z80: var Z80, byte: uint8, arith: bool): uint8 =
     let lsb = byte.test_bit(0)
     let msb = byte.test_bit(7)
@@ -207,39 +293,49 @@ proc shift_right(z80: var Z80, byte: uint8, arith: bool): uint8 =
     if arith:
         shifted.write_bit(7, msb)
 
+    z80.flag_write(Flag.PV, check_p(shifted))
     z80.flag_write(Flag.Z, shifted == 0)
     z80.flag_clear(Flag.N)
     z80.flag_clear(Flag.H)
+    z80.flag_write(Flag.S, check_s(shifted))
     z80.flag_write(Flag.C, lsb)
 
     return shifted
 
+# C0P0ZS
 proc shift_right_reg(z80: var Z80, reg: Reg8, arith: bool) =
     let byte = z80.reg(reg)
     let shifted = z80.shift_right(byte, arith)
     z80.reg_write(reg, shifted)
 
+# CNVHZS
 proc sub_a(z80: var Z80, val: uint8, sbc: bool) =
     let carry: uint8 = if sbc and z80.flag(Flag.C): 1 else: 0
     let a = z80.reg(Reg8.A)
 
     let result1 = a - val
-    let underflowed1 = will_underflow(a, val)
-    let check_h1 = check_h_borrow(a, val)
+    let check_c1 = check_c_sub(a, val)
+    let check_h1 = check_h_add(a, val)
+    let check_v1 = check_v(a, val)
 
     let result2 = result1 - carry
-    let underflowed2 = will_underflow(result1, carry)
-    let check_h2 = check_h_borrow(result1, carry)
+    let check_c2 = check_c_sub(result1, carry)
+    let check_h2 = check_h_add(result1, carry)
+    let check_v2 = check_v(result1, carry)
 
     let set_h = check_h1 or check_h2
-    let set_c = underflowed1 or underflowed2
+    let set_c = check_c1 or check_c2
+    let set_v = check_v1 or check_v2
 
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.C, set_c)
     z80.flag_write(Flag.H, set_h)
     z80.flag_write(Flag.Z, result2 == 0)
+    z80.flag_write(Flag.PV, set_v)
+    z80.flag_write(Flag.S, check_s(result2))
     z80.reg_write(Reg8.A, result2)
 
+# -0-1Z-
 proc swap_bits(z80: var Z80, val: uint8): uint8 =
     let new_high = val and 0xF
     let new_low = (val and 0xF0) shr 4
@@ -247,26 +343,29 @@ proc swap_bits(z80: var Z80, val: uint8): uint8 =
 
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_clear(Flag.N)
-    z80.flag_clear(Flag.H)
-    z80.flag_clear(Flag.C)
+    z80.flag_set(Flag.H)
 
     return new_val
 
+# -0-1Z-
 proc swap_bits_reg(z80: var Z80, reg: Reg8) =
     let byte = z80.reg(reg)
     let swapped = z80.swap_bits(byte)
     z80.reg_write(reg, swapped)
 
+# ------
 proc write_bit_n(z80: var Z80, reg: Reg8, digit: uint8, set: bool) =
     var r = z80.reg(reg)
     r.writeBit(digit, set)
     z80.reg_write(reg, r)
 
+# ------
 proc write_bit_ram(z80: var Z80, address: uint16, digit: uint8, set: bool) =
     var val = z80.ram_read(address)
     val.writeBit(digit, set)
     z80.ram_write(address, val)
 
+# 00P0ZS
 proc xor_a(z80: var Z80, val: uint8) =
     var a = z80.reg(Reg8.A)
     a = a xor val
@@ -274,6 +373,8 @@ proc xor_a(z80: var Z80, val: uint8) =
     z80.flag_clear(Flag.H)
     z80.flag_clear(Flag.C)
     z80.flag_write(Flag.Z, a == 0)
+    z80.flag_write(Flag.S, check_s(a))
+    z80.flag_write(Flag.PV, check_p(a))
     z80.reg_write(Reg8.A, a)
 
 # NOP
@@ -619,7 +720,7 @@ proc inc_34(z80: var Z80): uint8 =
     let new_val = val + 1
     z80.ram_write(hl, new_val)
 
-    let set_h = check_h_carry(val, 1)
+    let set_h = check_h_sub(val, 1)
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.H, set_h)
@@ -632,7 +733,7 @@ proc dec_35(z80: var Z80): uint8 =
     let new_val = val + 1
     z80.ram_write(hl, new_val)
 
-    let set_h = check_h_borrow(val, 1)
+    let set_h = check_h_add(val, 1)
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_set(Flag.N)
     z80.flag_write(Flag.H, set_h)
@@ -1776,8 +1877,8 @@ proc add_e8(z80: var Z80): uint8 =
     let sp = z80.sp
     z80.sp = sp + signed
 
-    let set_c = will_overflow(sp.lo(), signed.lo())
-    let set_h = check_h_carry(sp.lo(), signed.lo())
+    let set_c = check_c_add(sp.lo(), signed.lo())
+    let set_h = check_h_sub(sp.lo(), signed.lo())
     z80.flag_clear(Flag.Z)
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.C, set_c)
@@ -1861,8 +1962,8 @@ proc ld_f8(z80: var Z80): uint8 =
     let sp = z80.sp
     z80.reg_write(Reg16.HL, sp + signed)
 
-    let set_c = will_overflow(sp.lo(), signed.lo())
-    let set_h = check_h_carry(sp.lo(), signed.lo())
+    let set_c = check_c_add(sp.lo(), signed.lo())
+    let set_h = check_h_sub(sp.lo(), signed.lo())
     z80.flag_clear(Flag.Z)
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.C, set_c)
