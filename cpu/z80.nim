@@ -33,6 +33,13 @@ proc newZ80*(): Z80 =
     result.halted = false
     result.irq_enabled = false
 
+proc exchange*(z80: var Z80, reg: Reg16) =
+    case (reg):
+        of Reg16.AF: swap(z80.af, z80.af_shadow)
+        of Reg16.BC: swap(z80.bc, z80.bc_shadow)
+        of Reg16.DE: swap(z80.de, z80.de_shadow)
+        of Reg16.HL: swap(z80.hl, z80.hl_shadow)
+
 proc fetch*(z80: var Z80): uint8 =
     let val = z80.ram_read(z80.pc)
     z80.pc = z80.pc + 1
@@ -43,7 +50,7 @@ proc flag*(z80: Z80, flag: Flag): bool =
         of Flag.S: result = (z80.af.lo and 0b1000_0000) != 0
         of Flag.Z: result = (z80.af.lo and 0b0100_0000) != 0
         of Flag.H: result = (z80.af.lo and 0b0001_0000) != 0
-        of Flag.P: result = (z80.af.lo and 0b0000_0100) != 0
+        of Flag.PV: result = (z80.af.lo and 0b0000_0100) != 0
         of Flag.N: result = (z80.af.lo and 0b0000_0010) != 0
         of Flag.C: result = (z80.af.lo and 0b0000_0001) != 0
 
@@ -53,7 +60,7 @@ proc flag_clear*(z80: var Z80, flag: Flag) =
         of Flag.S: z80.af.lo = f and 0b0111_1111
         of Flag.Z: z80.af.lo = f and 0b1011_1111
         of Flag.H: z80.af.lo = f and 0b1110_1111
-        of Flag.P: z80.af.lo = f and 0b1111_1011
+        of Flag.PV: z80.af.lo = f and 0b1111_1011
         of Flag.N: z80.af.lo = f and 0b1111_1101
         of Flag.C: z80.af.lo = f and 0b1111_1110
 
@@ -63,7 +70,7 @@ proc flag_set*(z80: var Z80, flag: Flag) =
         of Flag.S: z80.af.lo = f or 0b1000_0000
         of Flag.Z: z80.af.lo = f or 0b0100_0000
         of Flag.H: z80.af.lo = f or 0b0001_0000
-        of Flag.P: z80.af.lo = f or 0b0000_0100
+        of Flag.PV: z80.af.lo = f or 0b0000_0100
         of Flag.N: z80.af.lo = f or 0b0000_0010
         of Flag.C: z80.af.lo = f or 0b0000_0001
 
@@ -84,6 +91,12 @@ proc pc*(z80: Z80): uint16 =
 
 proc `pc=`*(z80: var Z80, val: uint16) =
     z80.pc = val
+
+proc port_read*(z80: Z80, port: uint8): uint8 =
+    return 0 # FIXME
+
+proc port_write*(z80: var Z80, port: uint8, data: uint8) =
+    discard # FIXME
 
 proc ram_read*(z80: var Z80, address: uint16): uint8 =
     return 0 # FIXME
