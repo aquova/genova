@@ -1,5 +1,6 @@
 import flags
 import registers
+import ../utils
 
 type Z80* = object
     pc: uint16
@@ -44,6 +45,11 @@ proc fetch*(z80: var Z80): uint8 =
     let val = z80.ram_read(z80.pc)
     z80.pc = z80.pc + 1
     return val
+
+proc fetch16*(z80: var Z80): uint16 =
+    let low = z80.fetch()
+    let high = z80.fetch()
+    result = merge_bytes(high, low)
 
 proc flag*(z80: Z80, flag: Flag): bool =
     case flag:

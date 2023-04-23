@@ -382,9 +382,7 @@ proc nop_00(z80: var Z80): uint8 = 1
 
 # LD BC, nn
 proc ld_01(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let val = merge_bytes(high, low)
+    let val = z80.fetch16()
     z80.ld(Reg16.BC, val)
     return 3
 
@@ -484,9 +482,7 @@ proc djnz_10(z80: var Z80): uint8 =
 
 # LD DE, nn
 proc ld_11(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let val = merge_bytes(high, low)
+    let val = z80.fetch16()
     z80.ld(Reg16.DE, val)
     return 3
 
@@ -588,17 +584,13 @@ proc jr20(z80: var Z80): uint8 =
 
 # LD HL, nn
 proc ld_21(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let val = merge_bytes(high, low)
+    let val = z80.fetch16()
     z80.ld(Reg16.HL, val)
     return 3
 
 # LD (nn), HL
 proc ld_22(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     let hl = z80.reg(Reg16.HL)
     let data = z80.ram_read(hl)
     z80.ram_write(address, data)
@@ -650,9 +642,7 @@ proc add_29(z80: var Z80): uint8 =
 
 # LD HL, (nn)
 proc ld_2a(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     let data = z80.ram_read(address)
     z80.reg_write(Reg16.HL, data)
     return 2
@@ -700,16 +690,12 @@ proc jr_30(z80: var Z80): uint8 =
 
 # LD SP, nn
 proc ld_31(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    z80.sp = merge_bytes(high, low)
+    z80.sp = z80.fetch16()
     return 3
 
 # LD (nn), A
 proc ld_32(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     let a = z80.reg(Reg8.A)
     z80.ram_write(address, a)
     return 2
@@ -780,9 +766,7 @@ proc add_39(z80: var Z80): uint8 =
 
 # LD A, (nn)
 proc ld_3a(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     let data = z80.ram_read(address)
     z80.reg_write(Reg8.A, data)
     return 2
@@ -1623,9 +1607,7 @@ proc pop_c1(z80: var Z80): uint8 =
 
 # JP NZ, nn
 proc jp_c2(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let offset = merge_bytes(high, low)
+    let offset = z80.fetch16()
     if not z80.flag(Flag.Z):
         z80.pc = offset
         return 4
@@ -1634,18 +1616,14 @@ proc jp_c2(z80: var Z80): uint8 =
 
 # JP nn
 proc jp_c3(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let offset = merge_bytes(high, low)
+    let offset = z80.fetch16()
     z80.pc = offset
     return 4
 
 # CALL NZ, nn
 proc call_c4(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if not z80.flag(Flag.Z):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -1687,9 +1665,7 @@ proc ret_c9(z80: var Z80): uint8 =
 
 # JP Z, nn
 proc jp_ca(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let offset = merge_bytes(high, low)
+    let offset = z80.fetch16()
     if z80.flag(Flag.Z):
         z80.pc = offset
         return 4
@@ -1702,10 +1678,8 @@ proc prefix_cb(z80: var Z80): uint8 =
 
 # CALL Z, nn
 proc call_cc(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.Z):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -1714,9 +1688,7 @@ proc call_cc(z80: var Z80): uint8 =
 
 # CALL nn
 proc call_cd(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     z80.push(z80.pc)
     z80.pc = address
     return 6
@@ -1750,9 +1722,7 @@ proc pop_d1(z80: var Z80): uint8 =
 
 # JP NC, nn
 proc jp_d2(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let offset = merge_bytes(high, low)
+    let offset = z80.fetch16()
     if not z80.flag(Flag.C):
         z80.pc = offset
         return 4
@@ -1768,10 +1738,8 @@ proc out_d3(z80: var Z80): uint8 =
 
 # CALL NC, nn
 proc call_d4(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if not z80.flag(Flag.C):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -1814,9 +1782,7 @@ proc exx_d9(z80: var Z80): uint8 =
 
 # JP C, nn
 proc jp_da(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let offset = merge_bytes(high, low)
+    let offset = z80.fetch16()
     if z80.flag(Flag.C):
         z80.pc = offset
         return 4
@@ -1832,10 +1798,8 @@ proc in_db(z80: var Z80): uint8 =
 
 # CALL C, nn
 proc call_dc(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.C):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -1875,9 +1839,7 @@ proc pop_e1(z80: var Z80): uint8 =
 
 # JP NP, nn
 proc ld_e2(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     if not z80.flag(Flag.PV):
         z80.pc = address
         return 4
@@ -1894,10 +1856,8 @@ proc ex_e3(z80: var Z80): uint8 =
 
 # CALL NP, nn
 proc call_e4(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if not z80.flag(Flag.PV):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -1939,10 +1899,8 @@ proc jp_e9(z80: var Z80): uint8 =
 
 # JP P, nn
 proc jp_ea(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.PV):
-        let address = merge_bytes(high, low)
         z80.pc = address
         return 4
     else:
@@ -1958,10 +1916,8 @@ proc ex_eb(z80: var Z80): uint8 =
 
 # CALL P, nn
 proc call_ec(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.PV):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -2001,9 +1957,7 @@ proc pop_f1(z80: var Z80): uint8 =
 
 # JP S, nn
 proc jp_f2(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
-    let address = merge_bytes(high, low)
+    let address = z80.fetch16()
     if not z80.flag(Flag.S):
         z80.pc = address
         return 4
@@ -2017,10 +1971,8 @@ proc di_f3(z80: var Z80): uint8 =
 
 # CALL S, nn
 proc call_f4(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if not z80.flag(Flag.S):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
@@ -2062,10 +2014,8 @@ proc ld_f9(z80: var Z80): uint8 =
 
 # JP S, nn
 proc jp_fa(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.S):
-        let address = merge_bytes(high, low)
         z80.pc = address
         return 4
     else:
@@ -2078,10 +2028,8 @@ proc ei_fb(z80: var Z80): uint8 =
 
 # CALL S, nn
 proc call_fc(z80: var Z80): uint8 =
-    let low = z80.fetch()
-    let high = z80.fetch()
+    let address = z80.fetch16()
     if z80.flag(Flag.S):
-        let address = merge_bytes(high, low)
         z80.push(z80.pc)
         z80.pc = address
         return 6
