@@ -378,48 +378,48 @@ proc xor_a(z80: var Z80, val: uint8) =
     z80.reg_write(Reg8.A, a)
 
 # NOP
-proc nop_00(z80: var Z80): uint8 = 1
+proc nop_00(z80: var Z80): uint8 = 4
 
 # LD BC, nn
 proc ld_01(z80: var Z80): uint8 =
     let val = z80.fetch16()
     z80.ld(Reg16.BC, val)
-    return 3
+    return 10
 
 # LD (BC), A
 proc ld_02(z80: var Z80): uint8 =
     let bc = z80.reg(Reg16.BC)
     let val = z80.reg(Reg8.A)
     z80.ram_write(bc, val)
-    return 2
+    return 7
 
 # INC BC
 proc inc_03(z80: var Z80): uint8 =
     z80.inc(Reg16.BC)
-    return 2
+    return 6
 
 # INC B
 proc inc_04(z80: var Z80): uint8 =
     z80.inc(Reg8.B)
-    return 1
+    return 4
 
 # DEC B
 proc dec_05(z80: var Z80): uint8 =
     z80.dec(Reg8.B)
-    return 1
+    return 4
 
 # LD B, n
 proc ld_06(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.B, byte)
-    return 2
+    return 7
 
 # RLCA
 proc rlca_07(z80: var Z80): uint8 =
     z80.rot_left_reg(Reg8.A, false)
     # RLCA wants Z to be cleared (unlike other shift ops)
     z80.flag_clear(Flag.Z)
-    return 1
+    return 4
 
 # EX AF, AF'
 proc ex_08(z80: var Z80): uint8 =
@@ -430,42 +430,42 @@ proc ex_08(z80: var Z80): uint8 =
 proc add_09(z80: var Z80): uint8 =
     let bc = z80.reg(Reg16.BC)
     z80.add(Reg16.HL, bc)
-    return 2
+    return 11
 
 # LD A, (BC)
 proc ld_0a(z80: var Z80): uint8 =
     let bc = z80.reg(Reg16.BC)
     let val = z80.ram_read(bc)
     z80.ld(Reg8.A, val)
-    return 2
+    return 7
 
 # DEC BC
 proc dec_0b(z80: var Z80): uint8 =
     z80.dec(Reg16.BC)
-    return 2
+    return 6
 
 # INC C
 proc inc_0c(z80: var Z80): uint8 =
     z80.inc(Reg8.C)
-    return 1
+    return 4
 
 # DEC C
 proc dec_0d(z80: var Z80): uint8 =
     z80.dec(Reg8.C)
-    return 1
+    return 4
 
 # LD C, n
 proc ld_0e(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.C, byte)
-    return 2
+    return 7
 
 # RRCA
 proc rrca_0f(z80: var Z80): uint8 =
     z80.rot_right_reg(Reg8.A, false)
     # RRCA wants Z to be cleared (unlike other shift ops)
     z80.flag_clear(Flag.Z)
-    return 1
+    return 4
 
 # DJNZ d
 proc djnz_10(z80: var Z80): uint8 =
@@ -484,42 +484,42 @@ proc djnz_10(z80: var Z80): uint8 =
 proc ld_11(z80: var Z80): uint8 =
     let val = z80.fetch16()
     z80.ld(Reg16.DE, val)
-    return 3
+    return 10
 
 # LD (DE), A
 proc ld_12(z80: var Z80): uint8 =
     let de = z80.reg(Reg16.DE)
     let val = z80.reg(Reg8.A)
     z80.ram_write(de, val)
-    return 2
+    return 7
 
 # INC DE
 proc inc_13(z80: var Z80): uint8 =
     z80.inc(Reg16.DE)
-    return 2
+    return 6
 
 # INC D
 proc inc_14(z80: var Z80): uint8 =
     z80.inc(Reg8.D)
-    return 1
+    return 4
 
 # DEC D
 proc dec_15(z80: var Z80): uint8 =
     z80.dec(Reg8.D)
-    return 1
+    return 4
 
 # LD D, n
 proc ld_16(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.D, byte)
-    return 2
+    return 7
 
 # RLA
 proc rla_17(z80: var Z80): uint8 =
     z80.rot_left_reg(Reg8.A, true)
     # RLA wants Z to be cleared (unlike other shift ops)
     z80.flag_clear(Flag.Z)
-    return 1
+    return 4
 
 # JR d
 proc jr_18(z80: var Z80): uint8 =
@@ -527,48 +527,48 @@ proc jr_18(z80: var Z80): uint8 =
     var pc = z80.pc
     pc = pc + offset
     z80.pc = pc
-    return 3
+    return 12
 
 # ADD HL, DE
 proc add_19(z80: var Z80): uint8 =
     let de = z80.reg(Reg16.DE)
     z80.add(Reg16.HL, de)
-    return 2
+    return 11
 
 # LD A, (DE)
 proc ld_1a(z80: var Z80): uint8 =
     let de = z80.reg(Reg16.DE)
     let val = z80.ram_read(de)
     z80.reg_write(Reg8.A, val)
-    return 2
+    return 7
 
 # DEC DE
 proc dec_1b(z80: var Z80): uint8 =
     z80.dec(Reg16.DE)
-    return 2
+    return 6
 
 # INC E
 proc inc_1c(z80: var Z80): uint8 =
     z80.inc(Reg8.E)
-    return 1
+    return 4
 
 # DEC E
 proc dec_1d(z80: var Z80): uint8 =
     z80.dec(Reg8.E)
-    return 1
+    return 4
 
 # LD E, n
 proc ld_1e(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.E, byte)
-    return 2
+    return 7
 
 # RRA
 proc rra_1f(z80: var Z80): uint8 =
     z80.rot_right_reg(Reg8.A, true)
     # RRA wants Z to be cleared (unlike other shift ops)
     z80.flag_clear(Flag.Z)
-    return 1
+    return 4
 
 # JR NZ, d
 proc jr20(z80: var Z80): uint8 =
@@ -578,15 +578,15 @@ proc jr20(z80: var Z80): uint8 =
         var pc = z80.pc()
         pc += uint16(signed)
         z80.pc = pc
-        return 3
+        return 12
     else:
-        return 2
+        return 7
 
 # LD HL, nn
 proc ld_21(z80: var Z80): uint8 =
     let val = z80.fetch16()
     z80.ld(Reg16.HL, val)
-    return 3
+    return 10
 
 # LD (nn), HL
 proc ld_22(z80: var Z80): uint8 =
@@ -594,33 +594,33 @@ proc ld_22(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let data = z80.ram_read(hl)
     z80.ram_write(address, data)
-    return 2
+    return 16
 
 # INC HL
 proc inc_23(z80: var Z80): uint8 =
     z80.inc(Reg16.HL)
-    return 2
+    return 6
 
 # INC H
 proc inc_24(z80: var Z80): uint8 =
     z80.inc(Reg8.H)
-    return 1
+    return 4
 
 # DEC H
 proc dec_25(z80: var Z80): uint8 =
     z80.dec(Reg8.H)
-    return 1
+    return 4
 
 # LD H, n
 proc ld_26(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.H, byte)
-    return 2
+    return 7
 
 # DAA
 proc daa_27(z80: var Z80): uint8 =
     z80.daa()
-    return 1
+    return 4
 
 # JR Z, d
 proc jr_28(z80: var Z80): uint8 =
@@ -630,43 +630,43 @@ proc jr_28(z80: var Z80): uint8 =
         var pc = z80.pc()
         pc += uint16(signed)
         z80.pc = pc
-        return 3
+        return 12
     else:
-        return 2
+        return 7
 
 # ADD HL, HL
 proc add_29(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     z80.add(Reg16.HL, hl)
-    return 2
+    return 11
 
 # LD HL, (nn)
 proc ld_2a(z80: var Z80): uint8 =
     let address = z80.fetch16()
     let data = z80.ram_read(address)
     z80.reg_write(Reg16.HL, data)
-    return 2
+    return 16
 
 # DEC HL
 proc dec_2b(z80: var Z80): uint8 =
     z80.dec(Reg16.HL)
-    return 2
+    return 6
 
 # INC L
 proc inc_2c(z80: var Z80): uint8 =
     z80.inc(Reg8.L)
-    return 1
+    return 4
 
 # DEC L
 proc dec_2d(z80: var Z80): uint8 =
     z80.dec(Reg8.L)
-    return 1
+    return 4
 
 # LD L, n
 proc ld_2e(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.L, byte)
-    return 2
+    return 7
 
 # CPL
 proc cpl_2f(z80: var Z80): uint8 =
@@ -674,7 +674,7 @@ proc cpl_2f(z80: var Z80): uint8 =
     z80.reg_write(Reg8.A, not val)
     z80.flag_set(Flag.N)
     z80.flag_set(Flag.H)
-    return 1
+    return 4
 
 # JR NC, d
 proc jr_30(z80: var Z80): uint8 =
@@ -684,27 +684,27 @@ proc jr_30(z80: var Z80): uint8 =
         var pc = z80.pc()
         pc += uint16(signed)
         z80.pc = pc
-        return 3
+        return 12
     else:
-        return 2
+        return 7
 
 # LD SP, nn
 proc ld_31(z80: var Z80): uint8 =
     z80.sp = z80.fetch16()
-    return 3
+    return 10
 
 # LD (nn), A
 proc ld_32(z80: var Z80): uint8 =
     let address = z80.fetch16()
     let a = z80.reg(Reg8.A)
     z80.ram_write(address, a)
-    return 2
+    return 16
 
 # INC SP
 proc inc_33(z80: var Z80): uint8 =
     let sp = z80.sp()
     z80.sp = (sp - 1)
-    return 2
+    return 6
 
 # INC (HL)
 proc inc_34(z80: var Z80): uint8 =
@@ -717,7 +717,7 @@ proc inc_34(z80: var Z80): uint8 =
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.H, set_h)
-    return 3
+    return 11
 
 # DEC (HL)
 proc dec_35(z80: var Z80): uint8 =
@@ -730,21 +730,21 @@ proc dec_35(z80: var Z80): uint8 =
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_set(Flag.N)
     z80.flag_write(Flag.H, set_h)
-    return 3
+    return 11
 
 # LD (HL), n
 proc ld_36(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.fetch()
     z80.ram_write(hl, val)
-    return 3
+    return 10
 
 # SCF
 proc scf_37(z80: var Z80): uint8 =
     z80.flag_set(Flag.C)
     z80.flag_clear(Flag.H)
     z80.flag_clear(Flag.N)
-    return 1
+    return 4
 
 # JR C, d
 proc jr_38(z80: var Z80): uint8 =
@@ -754,44 +754,44 @@ proc jr_38(z80: var Z80): uint8 =
         var pc = z80.pc()
         pc += uint16(signed)
         z80.pc = pc
-        return 3
+        return 12
     else:
-        return 2
+        return 7
 
 # ADD HL, SP
 proc add_39(z80: var Z80): uint8 =
     let sp = z80.sp()
     z80.add(Reg16.HL, sp)
-    return 2
+    return 11
 
 # LD A, (nn)
 proc ld_3a(z80: var Z80): uint8 =
     let address = z80.fetch16()
     let data = z80.ram_read(address)
     z80.reg_write(Reg8.A, data)
-    return 2
+    return 13
 
 # DEC SP
 proc dec_3b(z80: var Z80): uint8 =
     let sp = z80.sp()
     z80.sp = (sp - 1)
-    return 2
+    return 6
 
 # INC A
 proc inc_3c(z80: var Z80): uint8 =
     z80.inc(Reg8.A)
-    return 1
+    return 4
 
 # DEC A
 proc dec_3d(z80: var Z80): uint8 =
     z80.dec(Reg8.A)
-    return 1
+    return 4
 
 # LD A, n
 proc ld_3e(z80: var Z80): uint8 =
     let byte = z80.fetch()
     z80.ld(Reg8.A, byte)
-    return 2
+    return 7
 
 # CCF
 proc ccf_3f(z80: var Z80): uint8 =
@@ -799,826 +799,824 @@ proc ccf_3f(z80: var Z80): uint8 =
     z80.flag_clear(Flag.H)
     let cf = z80.flag(Flag.C)
     z80.flag_write(Flag.C, not cf)
-    return 1
+    return 4
 
 # LD B, B
 proc ld_40(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, C
 proc ld_41(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, D
 proc ld_42(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, E
 proc ld_43(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, H
 proc ld_44(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, L
 proc ld_45(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD B, (HL)
 proc ld_46(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.B, val)
-    return 2
+    return 7
 
 # LD B, A
 proc ld_47(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.B, byte)
-    return 1
+    return 4
 
 # LD C, B
 proc ld_48(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, C
 proc ld_49(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, D
 proc ld_4a(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, E
 proc ld_4b(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, H
 proc ld_4c(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, L
 proc ld_4d(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD C, (HL)
 proc ld_4e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.C, val)
-    return 2
+    return 7
 
 # LD C, A
 proc ld_4f(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.C, byte)
-    return 1
+    return 4
 
 # LD D, B
 proc ld_50(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, C
 proc ld_51(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, D
 proc ld_52(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, E
 proc ld_53(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, H
 proc ld_54(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, L
 proc ld_55(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD D, (HL)
 proc ld_56(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.D, val)
-    return 2
+    return 7
 
 # LD D, A
 proc ld_57(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.D, byte)
-    return 1
+    return 4
 
 # LD E, B
 proc ld_58(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, C
 proc ld_59(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, D
 proc ld_5a(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, E
 proc ld_5b(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, H
 proc ld_5c(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, L
 proc ld_5d(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD E, (HL)
 proc ld_5e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.E, val)
-    return 2
+    return 7
 
 # LD E, A
 proc ld_5f(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD H, B
 proc ld_60(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, C
 proc ld_61(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, D
 proc ld_62(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, E
 proc ld_63(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, H
 proc ld_64(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, L
 proc ld_65(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD H, (HL)
 proc ld_66(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.H, val)
-    return 2
+    return 7
 
 # LD H, A
 proc ld_67(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.H, byte)
-    return 1
+    return 4
 
 # LD L, B
 proc ld_68(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, C
 proc ld_69(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, D
 proc ld_6a(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, E
 proc ld_6b(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, H
 proc ld_6c(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, L
 proc ld_6d(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.L, byte)
-    return 1
+    return 4
 
 # LD L, (HL)
 proc ld_6e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.L, val)
-    return 2
+    return 7
 
 # LD L, A
 proc ld_6f(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.E, byte)
-    return 1
+    return 4
 
 # LD (HL), B
 proc ld_70(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD (HL), C
 proc ld_71(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD (HL), D
 proc ld_72(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD (HL), E
 proc ld_73(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD (HL), H
 proc ld_74(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD (HL), L
 proc ld_75(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # HALT
 proc halt_76(z80: var Z80): uint8 =
     z80.halted = true
-    return 1
+    return 4
 
 # LD (HL), A
 proc ld_77(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     let hl = z80.reg(Reg16.HL)
     z80.ram_write(hl, val)
-    return 2
+    return 7
 
 # LD A, B
 proc ld_78(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.B)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, C
 proc ld_79(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.C)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, D
 proc ld_7a(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.D)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, E
 proc ld_7b(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.E)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, H
 proc ld_7c(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.H)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, L
 proc ld_7d(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.L)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # LD A, (HL)
 proc ld_7e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.reg_write(Reg8.A, val)
-    return 2
+    return 7
 
 # LD A, A
 proc ld_7f(z80: var Z80): uint8 =
     let byte = z80.reg(Reg8.A)
     z80.ld(Reg8.A, byte)
-    return 1
+    return 4
 
 # ADD A, B
 proc add_80(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, C
 proc add_81(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, D
 proc add_82(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, E
 proc add_83(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, H
 proc add_84(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, L
 proc add_85(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.add_a(val, false)
-    return 1
+    return 4
 
 # ADD A, (HL)
 proc add_86(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.add_a(val, false)
-    return 2
+    return 7
 
 # ADD A, A
 proc add_87(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, B
 proc adc_88(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, C
 proc adc_89(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, D
 proc adc_8a(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, E
 proc adc_8b(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, H
 proc adc_8c(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, L
 proc adc_8d(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # ADC A, (HL)
 proc adc_8e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.add_a(val, true)
-    return 2
+    return 7
 
 # ADC A, A
 proc adc_8f(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.add_a(val, true)
-    return 1
+    return 4
 
 # SUB B
 proc sub_90(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB C
 proc sub_91(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB D
 proc sub_92(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB E
 proc sub_93(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB H
 proc sub_94(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB L
 proc sub_95(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SUB (HL)
 proc sub_96(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.sub_a(val, false)
-    return 2
+    return 7
 
 # SUB A
 proc sub_97(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.sub_a(val, false)
-    return 1
+    return 4
 
 # SBC B
 proc sbc_98(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC C
 proc sbc_99(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC D
 proc sbc_9a(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC E
 proc sbc_9b(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC H
 proc sbc_9c(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC L
 proc sbc_9d(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # SBC (HL)
 proc sbc_9e(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.sub_a(val, true)
-    return 2
+    return 7
 
 # SBC A
 proc sbc_9f(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.sub_a(val, true)
-    return 1
+    return 4
 
 # AND B
 proc and_a0(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND C
 proc and_a1(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND D
 proc and_a2(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND E
 proc and_a3(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND H
 proc and_a4(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND L
 proc and_a5(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.and_a(val)
-    return 1
+    return 4
 
 # AND (HL)
 proc and_a6(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.and_a(val)
-    return 2
+    return 7
 
 # AND A
 proc and_a7(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.and_a(val)
-    return 1
+    return 4
 
 # XOR B
 proc xor_a8(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR C
 proc xor_a9(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR D
 proc xor_aa(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR E
 proc xor_ab(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR H
 proc xor_ac(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR L
 proc xor_ad(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # XOR (HL)
 proc xor_ae(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.xor_a(val)
-    return 2
+    return 7
 
 # XOR A
 proc xor_af(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.xor_a(val)
-    return 1
+    return 4
 
 # OR B
 proc or_b0(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR C
 proc or_b1(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR D
 proc or_b2(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR E
 proc or_b3(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR H
 proc or_b4(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR L
 proc or_b5(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.or_a(val)
-    return 1
+    return 4
 
 # OR (HL)
 proc or_b6(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.or_a(val)
-    return 2
+    return 7
 
 # OR A
 proc or_b7(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.or_a(val)
-    return 1
+    return 4
 
 # CP B
 proc cp_b8(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.B)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP C
 proc cp_b9(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.C)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP D
 proc cp_ba(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.D)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP E
 proc cp_bb(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.E)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP H
 proc cp_bc(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.H)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP L
 proc cp_bd(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.L)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # CP (HL)
 proc cp_be(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     let val = z80.ram_read(hl)
     z80.cp_a(val)
-    return 2
+    return 7
 
 # CP A
 proc cp_bf(z80: var Z80): uint8 =
     let val = z80.reg(Reg8.A)
     z80.cp_a(val)
-    return 1
+    return 4
 
 # RET NZ
 proc ret_c0(z80: var Z80): uint8 =
     if not z80.flag(Flag.Z):
         let address = z80.pop()
         z80.pc = address
-        return 5
+        return 15
     else:
-        return 2
+        return 11
 
 # POP BC
 proc pop_c1(z80: var Z80): uint8 =
     let val = z80.pop()
     z80.reg_write(Reg16.BC, val)
-    return 3
+    return 10
 
 # JP NZ, nn
 proc jp_c2(z80: var Z80): uint8 =
     let offset = z80.fetch16()
     if not z80.flag(Flag.Z):
         z80.pc = offset
-        return 4
-    else:
-        return 3
+    return 10
 
 # JP nn
 proc jp_c3(z80: var Z80): uint8 =
     let offset = z80.fetch16()
     z80.pc = offset
-    return 4
+    return 10
 
 # CALL NZ, nn
 proc call_c4(z80: var Z80): uint8 =
@@ -1626,51 +1624,49 @@ proc call_c4(z80: var Z80): uint8 =
     if not z80.flag(Flag.Z):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PUSH BC
 proc push_c5(z80: var Z80): uint8 =
     let bc = z80.reg(Reg16.BC)
     z80.push(bc)
-    return 4
+    return 10
 
 # ADD A, n
 proc add_c6(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.add_a(val, false)
-    return 2
+    return 7
 
 # RST 00
 proc rst_c7(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0000
-    return 4
+    return 11
 
 # RET Z
 proc ret_c8(z80: var Z80): uint8 =
     if z80.flag(Flag.Z):
         let address = z80.pop()
         z80.pc = address
-        return 5
+        return 15
     else:
-        return 2
+        return 11
 
 # RET
 proc ret_c9(z80: var Z80): uint8 =
     let val = z80.pop()
     z80.pc = val
-    return 4
+    return 10
 
 # JP Z, nn
 proc jp_ca(z80: var Z80): uint8 =
     let offset = z80.fetch16()
     if z80.flag(Flag.Z):
         z80.pc = offset
-        return 4
-    else:
-        return 3
+    return 10
 
 # PREFIX CB
 proc prefix_cb(z80: var Z80): uint8 =
@@ -1682,52 +1678,50 @@ proc call_cc(z80: var Z80): uint8 =
     if z80.flag(Flag.Z):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # CALL nn
 proc call_cd(z80: var Z80): uint8 =
     let address = z80.fetch16()
     z80.push(z80.pc)
     z80.pc = address
-    return 6
+    return 17
 
 # ADC A, n
 proc adc_ce(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.add_a(val, true)
-    return 2
+    return 7
 
 # RST 08
 proc rst_cf(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0008
-    return 4
+    return 11
 
 # RET NC
 proc ret_d0(z80: var Z80): uint8 =
     if not z80.flag(Flag.C):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 2
+        return 11
 
 # POP DE
 proc pop_d1(z80: var Z80): uint8 =
     let val = z80.pop()
     z80.reg_write(Reg16.DE, val)
-    return 3
+    return 10
 
 # JP NC, nn
 proc jp_d2(z80: var Z80): uint8 =
     let offset = z80.fetch16()
     if not z80.flag(Flag.C):
         z80.pc = offset
-        return 4
-    else:
-        return 3
+    return 10
 
 # OUT (n), A
 proc out_d3(z80: var Z80): uint8 =
@@ -1742,36 +1736,36 @@ proc call_d4(z80: var Z80): uint8 =
     if not z80.flag(Flag.C):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PUSH DE
 proc push_d5(z80: var Z80): uint8 =
     let de = z80.reg(Reg16.DE)
     z80.push(de)
-    return 4
+    return 10
 
 # SUB n
 proc sub_d6(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.sub_a(val, false)
-    return 2
+    return 7
 
 # RST 10
 proc rst_d7(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0010
-    return 4
+    return 11
 
 # RET C
 proc ret_d8(z80: var Z80): uint8 =
     if z80.flag(Flag.C):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 2
+        return 11
 
 # EXX
 proc exx_d9(z80: var Z80): uint8 =
@@ -1785,9 +1779,7 @@ proc jp_da(z80: var Z80): uint8 =
     let offset = z80.fetch16()
     if z80.flag(Flag.C):
         z80.pc = offset
-        return 4
-    else:
-        return 3
+    return 10
 
 # IN A, (n)
 proc in_db(z80: var Z80): uint8 =
@@ -1802,9 +1794,9 @@ proc call_dc(z80: var Z80): uint8 =
     if z80.flag(Flag.C):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PREFIX DD
 proc prefix_dd(z80: var Z80): uint8 =
@@ -1814,37 +1806,35 @@ proc prefix_dd(z80: var Z80): uint8 =
 proc sbc_de(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.sub_a(val, true)
-    return 2
+    return 7
 
 # RST 18
 proc rst_df(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0018
-    return 4
+    return 11
 
 # RET NP
 proc ret_e0(z80: var Z80): uint8 =
     if not z80.flag(Flag.PV):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 3
+        return 11
 
 # POP HL
 proc pop_e1(z80: var Z80): uint8 =
     let val = z80.pop()
     z80.reg_write(Reg16.HL, val)
-    return 3
+    return 10
 
 # JP NP, nn
 proc ld_e2(z80: var Z80): uint8 =
     let address = z80.fetch16()
     if not z80.flag(Flag.PV):
         z80.pc = address
-        return 4
-    else:
-        return 3
+    return 10
 
 # EX (SP), HL
 proc ex_e3(z80: var Z80): uint8 =
@@ -1860,51 +1850,49 @@ proc call_e4(z80: var Z80): uint8 =
     if not z80.flag(Flag.PV):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PUSH HL
 proc push_e5(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     z80.push(hl)
-    return 4
+    return 10
 
 # AND n
 proc and_e6(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.and_a(val)
-    return 2
+    return 7
 
 # RST 20
 proc rst_e7(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0020
-    return 4
+    return 11
 
 # RET P
 proc ret_e8(z80: var Z80): uint8 =
     if z80.flag(Flag.PV):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 4
+        return 11
 
 # JP HL
 proc jp_e9(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     z80.pc = hl
-    return 1
+    return 4
 
 # JP P, nn
 proc jp_ea(z80: var Z80): uint8 =
     let address = z80.fetch16()
     if z80.flag(Flag.PV):
         z80.pc = address
-        return 4
-    else:
-        return 3
+    return 10
 
 # EX DE, HL
 proc ex_eb(z80: var Z80): uint8 =
@@ -1920,9 +1908,9 @@ proc call_ec(z80: var Z80): uint8 =
     if z80.flag(Flag.PV):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PREFIX ED
 proc prefix_ed(z80: var Z80): uint8 =
@@ -1932,42 +1920,40 @@ proc prefix_ed(z80: var Z80): uint8 =
 proc xor_ee(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.xor_a(val)
-    return 2
+    return 7
 
 # RST 28
 proc rst_ef(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0028
-    return 4
+    return 11
 
 # RET NS
 proc ret_f0(z80: var Z80): uint8 =
     if not z80.flag(Flag.S):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 3
+        return 11
 
 # POP AF
 proc pop_f1(z80: var Z80): uint8 =
     let val = z80.pop()
     z80.reg_write(Reg16.AF, val)
-    return 3
+    return 10
 
 # JP S, nn
 proc jp_f2(z80: var Z80): uint8 =
     let address = z80.fetch16()
     if not z80.flag(Flag.S):
         z80.pc = address
-        return 4
-    else:
-        return 3
+    return 10
 
 # DI
 proc di_f3(z80: var Z80): uint8 =
     z80.irq_enabled = false
-    return 1
+    return 4
 
 # CALL S, nn
 proc call_f4(z80: var Z80): uint8 =
@@ -1975,56 +1961,54 @@ proc call_f4(z80: var Z80): uint8 =
     if not z80.flag(Flag.S):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PUSH AF
 proc push_f5(z80: var Z80): uint8 =
     let af = z80.reg(Reg16.AF)
     z80.push(af)
-    return 4
+    return 10
 
 # OR n
 proc or_f6(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.or_a(val)
-    return 2
+    return 7
 
 # RST 30
 proc rst_f7(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0030
-    return 4
+    return 11
 
 # RET S
 proc ret_f8(z80: var Z80): uint8 =
     if z80.flag(Flag.S):
         let val = z80.pop()
         z80.pc = val
-        return 5
+        return 15
     else:
-        return 4
+        return 11
 
 # LD SP, HL
 proc ld_f9(z80: var Z80): uint8 =
     let hl = z80.reg(Reg16.HL)
     z80.sp = hl
-    return 2
+    return 10
 
 # JP S, nn
 proc jp_fa(z80: var Z80): uint8 =
     let address = z80.fetch16()
     if z80.flag(Flag.S):
         z80.pc = address
-        return 4
-    else:
-        return 3
+    return 10
 
 # EI
 proc ei_fb(z80: var Z80): uint8 =
     z80.irq_enabled = true
-    return 1
+    return 4
 
 # CALL S, nn
 proc call_fc(z80: var Z80): uint8 =
@@ -2032,9 +2016,9 @@ proc call_fc(z80: var Z80): uint8 =
     if z80.flag(Flag.S):
         z80.push(z80.pc)
         z80.pc = address
-        return 6
+        return 17
     else:
-        return 3
+        return 10
 
 # PREFIX FD
 proc prefix_fd(z80: var Z80): uint8 =
@@ -2044,13 +2028,13 @@ proc prefix_fd(z80: var Z80): uint8 =
 proc cp_fe(z80: var Z80): uint8 =
     let val = z80.fetch()
     z80.cp_a(val)
-    return 2
+    return 7
 
 # RST 38
 proc rst_ff(z80: var Z80): uint8 =
     z80.push(z80.pc)
     z80.pc = 0x0038
-    return 4
+    return 11
 
 const OPCODES = [
 #   $00,     $01,     $02,    $03,     $04,     $05,     $06,     $07,     $08,     $09,     $0A,    $0B,       $0C,     $0D,       $0E,     $0F
@@ -2083,7 +2067,7 @@ proc decode_cb_reg(op: uint8): Reg8 =
         of 0x07, 0x0F: return Reg8.A
         else: assert(false, "Unreachable")
 
-proc execute_cb_op(z80: var Z80, op: uint8) =
+proc execute_cb_op(z80: var Z80, op: uint8): uint8 =
     # $00-$07 -> RLC
     # $08-$0F -> RRC
     # $10-$17 -> RL
@@ -2102,67 +2086,83 @@ proc execute_cb_op(z80: var Z80, op: uint8) =
         of 0x00..0x05, 0x07:
             let reg = decode_cb_reg(op)
             z80.rot_left_reg(reg, false)
+            return 8
         of 0x06:
             let hl = z80.reg(Reg16.HL)
             let byte = z80.ram_read(hl)
             let rot = z80.rot_left(byte, false)
             z80.ram_write(hl, rot)
+            return 15
         of 0x08..0x0D, 0x0F:
             let reg = decode_cb_reg(op)
             z80.rot_right_reg(reg, false)
+            return 8
         of 0x0E:
             let hl = z80.reg(Reg16.HL)
             let byte = z80.ram_read(hl)
             let rot = z80.rot_right(byte, false)
             z80.ram_write(hl, rot)
+            return 15
         of 0x10..0x15, 0x17:
             let reg = decode_cb_reg(op)
             z80.rot_left_reg(reg, true)
+            return 8
         of 0x16:
             let hl = z80.reg(Reg16.HL)
             let byte = z80.ram_read(hl)
             let rot = z80.rot_left(byte, true)
             z80.ram_write(hl, rot)
+            return 15
         of 0x18..0x1D, 0x1F:
             let reg = decode_cb_reg(op)
             z80.rot_right_reg(reg, true)
+            return 8
         of 0x1E:
             let hl = z80.reg(Reg16.HL)
             let byte = z80.ram_read(hl)
             let rot = z80.rot_right(byte, true)
             z80.ram_write(hl, rot)
+            return 15
         of 0x20..0x25, 0x27:
             let reg = decode_cb_reg(op)
             z80.shift_left_reg(reg)
+            return 8
         of 0x26:
             let address = z80.reg(Reg16.HL)
             let byte = z80.ram_read(address)
             let shifted = z80.shift_left(byte)
             z80.ram_write(address, shifted)
+            return 15
         of 0x28..0x2D, 0x2F:
             let reg = decode_cb_reg(op)
             z80.shift_right_reg(reg, true)
+            return 8
         of 0x2E:
             let hl = z80.reg(Reg16.HL)
             let val = z80.ram_read(hl)
             let shifted = z80.shift_right(val, true)
             z80.ram_write(hl, shifted)
+            return 15
         of 0x30..0x35, 0x37:
             let reg = decode_cb_reg(op)
             z80.swap_bits_reg(reg)
+            return 8
         of 0x36:
             let hl = z80.reg(Reg16.HL)
             let val = z80.ram_read(hl)
             let swapped = z80.swap_bits(val)
             z80.ram_write(hl, swapped)
+            return 15
         of 0x38..0x3D, 0x3F:
             let reg = decode_cb_reg(op)
             z80.shift_right_reg(reg, false)
+            return 8
         of 0x3E:
             let hl = z80.reg(Reg16.HL)
             let val = z80.ram_read(hl)
             let shifted = z80.shift_right(val, false)
             z80.ram_write(hl, shifted)
+            return 15
         of 0x40..0x7F:
             let rel_offset = op - 0x40
             let digit = rel_offset div 0x08
@@ -2172,9 +2172,11 @@ proc execute_cb_op(z80: var Z80, op: uint8) =
                     let hl = z80.reg(Reg16.HL)
                     let val = z80.ram_read(hl)
                     z80.check_bit(val, digit)
+                    return 12
                 else:
                     let reg = decode_cb_reg(op)
                     z80.check_bit_reg(reg, digit)
+                    return 8
         of 0x80..0xBF:
             let rel_offset = op - 0x80
             let digit = rel_offset div 0x08
@@ -2183,9 +2185,11 @@ proc execute_cb_op(z80: var Z80, op: uint8) =
                 of 0x06, 0x0E:
                     let hl = z80.reg(Reg16.HL)
                     z80.write_bit_ram(hl, digit, false)
+                    return 15
                 else:
                     let reg = decode_cb_reg(op)
                     z80.write_bit_n(reg, digit, false)
+                    return 8
         of 0xC0..0xFF:
             let rel_offset = op - 0xC0
             let digit = rel_offset div 0x08
@@ -2194,17 +2198,18 @@ proc execute_cb_op(z80: var Z80, op: uint8) =
                 of 0x06, 0x0E:
                     let hl = z80.reg(Reg16.HL)
                     z80.write_bit_ram(hl, digit, true)
+                    return 15
                 else:
                     let reg = decode_cb_reg(op)
                     z80.write_bit_n(reg, digit, true)
+                    return 8
 
 proc execute*(z80: var Z80): uint8 =
     let opcode = z80.fetch()
     case (opcode):
         of 0xCB:
             let cb_op = z80.fetch()
-            z80.execute_cb_op(cb_op)
-            return 2
+            return z80.execute_cb_op(cb_op)
         of 0xDD: discard
         of 0xED: discard
         of 0xFD: discard
