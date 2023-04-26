@@ -11,6 +11,8 @@ type Reg16* = enum
     BC,
     DE,
     HL,
+    IX,
+    IY,
 
 type Register* = object
     lo, hi: uint8

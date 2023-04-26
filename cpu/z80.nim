@@ -40,6 +40,7 @@ proc exchange*(z80: var Z80, reg: Reg16) =
         of Reg16.BC: swap(z80.bc, z80.bc_shadow)
         of Reg16.DE: swap(z80.de, z80.de_shadow)
         of Reg16.HL: swap(z80.hl, z80.hl_shadow)
+        else: assert(false, "Invalid register")
 
 proc fetch*(z80: var Z80): uint8 =
     let val = z80.ram_read(z80.pc)
@@ -127,6 +128,8 @@ proc reg*(z80: Z80, r: Reg16): uint16 =
         of Reg16.BC: z80.bc.u16
         of Reg16.DE: z80.de.u16
         of Reg16.HL: z80.hl.u16
+        of Reg16.IX: z80.ix.u16
+        of Reg16.IY: z80.iy.u16
 
 proc reg_write*(z80: var Z80, r: Reg8, val: uint8) =
     case r:
@@ -145,6 +148,8 @@ proc reg_write*(z80: var Z80, r: Reg16, val: uint16) =
         of Reg16.BC: z80.bc.u16 = val
         of Reg16.DE: z80.de.u16 = val
         of Reg16.HL: z80.hl.u16 = val
+        of Reg16.IX: z80.ix.u16 = val
+        of Reg16.IY: z80.iy.u16 = val
 
 proc sp*(z80: Z80): uint16 =
     z80.sp
