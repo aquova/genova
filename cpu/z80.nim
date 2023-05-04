@@ -1,8 +1,11 @@
 import flags
 import registers
+
+import ../bus
 import ../utils
 
 type Z80* = object
+    bus: Bus
     pc: uint16
     sp: uint16
     r: uint8
@@ -23,14 +26,10 @@ type Z80* = object
 # Forward declarations
 proc ram_read*(z80: var Z80, address: uint16): uint8
 
-proc newZ80*(): Z80 =
-    # TODO: These are the init values for GB, need to check what these should be set to
-    result.pc = 0x100
-    result.sp = 0xFFFE
-    result.af.u16 = 0x01B0
-    result.bc.u16 = 0x0013
-    result.de.u16 = 0x00D8
-    result.hl.u16 = 0x014D
+proc newZ80*(bus: Bus): Z80 =
+    result.bus = bus
+    result.pc = 0x0000
+    result.sp = 0xDFF0
     result.halted = false
     result.irq_enabled = false
 
@@ -106,10 +105,10 @@ proc port_write*(z80: var Z80, port: uint8, data: uint8) =
     discard # FIXME
 
 proc ram_read*(z80: var Z80, address: uint16): uint8 =
-    return 0 # FIXME
+    return z80.bus.ram_read(address)
 
 proc ram_write*(z80: var Z80, address: uint16, byte: uint8) =
-    discard # FIXME
+    z80.bus.ram_write(address, byte)
 
 proc reg*(z80: Z80, r: Reg8): uint8 =
     case r:

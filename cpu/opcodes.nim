@@ -1,4 +1,5 @@
 import bitops
+import strformat # TODO: For testing
 
 import flags
 import registers
@@ -232,8 +233,8 @@ proc or_a(z80: var Z80, val: uint8) =
 
 # ------
 proc pop(z80: var Z80): uint16 =
-    if z80.sp != 0xFFFE:
-        raise newException(InvalidError, "Trying to pop when stack is empty")
+    if z80.sp == 0xDFF0:
+        raise newException(InvalidError, &"Trying to pop when stack is empty: {z80.sp:#2x}")
     let lo = z80.ram_read(z80.sp)
     let hi = z80.ram_read(z80.sp + 1)
     result = merge_bytes(hi, lo)
@@ -2504,6 +2505,9 @@ proc execute_dd_op(z80: var Z80): uint8 =
     return z80.op_fn()
 
 proc execute*(z80: var Z80): uint8 =
+    if z80.halted:
+        return 1
     let opcode = z80.fetch()
+    echo(&"{opcode:#2x}")
     let op_fn = OPCODES[opcode]
     return z80.op_fn()
