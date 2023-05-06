@@ -4,6 +4,12 @@ import registers
 import ../bus
 import ../utils
 
+type IrqModes* = enum
+    None,
+    Mode0,
+    Mode1,
+    Mode2,
+
 type Z80* = object
     bus: Bus
     pc: uint16
@@ -22,6 +28,7 @@ type Z80* = object
     iy: Register
     halted: bool
     irq_enabled: bool
+    irq_mode: IrqModes
 
 # Forward declarations
 proc ram_read*(z80: var Z80, address: uint16): uint8
@@ -32,6 +39,7 @@ proc newZ80*(bus: Bus): Z80 =
     result.sp = 0xDFF0
     result.halted = false
     result.irq_enabled = false
+    result.irq_mode = IrqModes.None
 
 proc exchange*(z80: var Z80, reg: Reg16) =
     case (reg):
@@ -89,8 +97,17 @@ proc halted*(z80: Z80): bool =
 proc `halted=`*(z80: var Z80, halt: bool) =
     z80.halted = halt
 
+proc i*(z80: Z80): uint8 =
+    return z80.i
+
+proc `i=`*(z80: var Z80, value: uint8) =
+    z80.i = value
+
 proc `irq_enabled=`*(z80: var Z80, irq: bool) =
     z80.irq_enabled = irq
+
+proc irq_mode*(z80: var Z80, mode: IrqModes) =
+    z80.irq_mode = mode
 
 proc pc*(z80: Z80): uint16 =
     z80.pc
@@ -99,10 +116,16 @@ proc `pc=`*(z80: var Z80, val: uint16) =
     z80.pc = val
 
 proc port_read*(z80: Z80, port: uint8): uint8 =
-    return 0 # FIXME
+    return z80.bus.port_read(port)
 
 proc port_write*(z80: var Z80, port: uint8, data: uint8) =
-    discard # FIXME
+    z80.bus.port_write(port, data)
+
+proc r*(z80: Z80): uint8 =
+    return z80.r
+
+proc `r=`*(z80: var Z80, value: uint8) =
+    z80.r = value
 
 proc ram_read*(z80: var Z80, address: uint16): uint8 =
     return z80.bus.ram_read(address)

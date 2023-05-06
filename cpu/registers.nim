@@ -35,3 +35,4 @@ proc u16*(r: Register): uint16 =
 proc `u16=`*(r: var Register, v: uint16) =
     r.lo = uint8(v and 0xF)
     r.hi = uint8((v and 0xF0) shr 8)
+

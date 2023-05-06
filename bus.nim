@@ -35,9 +35,18 @@ import cartridge
 type Bus* = ref object
     cart: Cartridge
     internal_RAM: array[0xC000..0xDFFF, uint8]
+    # TODO: Move to VDP module
+    VRAM: array[0x4000, uint8]
+    CRAM: array[0x40, uint8]
 
 proc load*(bus: var Bus, data: openarray[char]) =
     bus.cart = loadGame(data)
+
+proc port_read*(bus: Bus, port: uint8): uint8 =
+    return 0
+
+proc port_write*(bus: var Bus, port: uint8, data: uint8) =
+    discard
 
 proc ram_read*(bus: Bus, address: uint16): uint8 =
     case address:

@@ -11,10 +11,14 @@ import ../utils
 # Forward declaration
 proc execute_cb_op(z80: var Z80): uint8
 proc execute_dd_op(z80: var Z80): uint8
+proc execute_ed_op(z80: var Z80): uint8
 
 # Info on z80 flag behavior: https://www.smspower.org/Development/Flags
 proc check_s(value: uint8): bool =
     return value.testBit(7)
+
+proc check_s(value: uint16): bool =
+    return value.testBit(15)
 
 proc check_h_add(a, b: uint8): bool =
     return (((a and 0xF) + (b and 0xF)) and 0x10) == 0x10
@@ -25,14 +29,35 @@ proc check_h_add(a, b: uint16): bool =
 proc check_h_sub(a, b: uint8): bool =
     return (int(a and 0xF) - int(b and 0xF)) < 0
 
+proc check_h_sub(a, b: uint16): bool =
+    return (int(a and 0xFFF) - int(b and 0xFFF)) < 0
+
 proc check_p[T: SomeInteger](value: T): bool =
     return (value.countSetBits() mod 2) == 1
 
-proc check_v(a, b: uint8): bool =
+proc check_v_add(a, b: uint8): bool =
     let sa = cast[int8](a)
     let sb = cast[int8](b)
-    let sum = sa + sb
+    let sum = int16(sa) + int16(sb)
     return sum < -128 or sum > 127
+
+proc check_v_sub(a, b: uint8): bool =
+    let sa = cast[int8](a)
+    let sb = cast[int8](b)
+    let diff = int16(sa) - int16(sb)
+    return diff < -128 or diff > 127
+
+proc check_v_add(a, b: uint16): bool =
+    let sa = cast[int16](a)
+    let sb = cast[int16](b)
+    let diff = int(sa) + int(sb)
+    return diff < -32768 or diff > 32767
+
+proc check_v_sub(a, b: uint16): bool =
+    let sa = cast[int16](a)
+    let sb = cast[int16](b)
+    let diff = int(sa) - int(sb)
+    return diff < -32768 or diff > 32767
 
 proc check_c_add[T: SomeUnsignedInt](a, b: T): bool =
     let sum = int(a) + int(b)
@@ -44,6 +69,32 @@ proc check_c_sub[T: SomeUnsignedInt](a, b: T): bool =
 
 # Info on opcode flags from here: https://clrhome.org/table/
 
+proc adc_hl(z80: var Z80, val: uint16) =
+    let carry: uint8 = if z80.flag(Flag.C): 1 else: 0
+    let hl = z80.reg(Reg16.HL)
+
+    let result1 = hl + val
+    let check_c1 = check_c_add(hl, val)
+    let check_h1 = check_h_add(hl, val)
+    let check_v1 = check_v_add(hl, val)
+
+    let result2 = result1 - carry
+    let check_c2 = check_c_add(result1, carry)
+    let check_h2 = check_h_add(result1, carry)
+    let check_v2 = check_v_add(result1, carry)
+
+    let set_h = check_h1 or check_h2
+    let set_c = check_c1 or check_c2
+    let set_v = check_v1 or check_v2
+
+    z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.C, set_c)
+    z80.flag_write(Flag.H, set_h)
+    z80.flag_write(Flag.Z, result2 == 0)
+    z80.flag_write(Flag.PV, set_v)
+    z80.flag_write(Flag.S, check_s(result2))
+    z80.reg_write(Reg16.HL, result2)
+
 # C0VHZS
 proc add_a(z80: var Z80, val: uint8, adc: bool) =
     var carry: uint8 = 0
@@ -54,12 +105,12 @@ proc add_a(z80: var Z80, val: uint8, adc: bool) =
     let result1 = a + val
     let c_check1 = check_c_add(a, val)
     let h_check1 = check_h_add(a, val)
-    let v_check1 = check_v(a, val)
+    let v_check1 = check_v_add(a, val)
 
     let result2 = result1 + carry
     let c_check2 = check_c_add(result1, carry)
     let h_check2 = check_h_add(result1, carry)
-    let v_check2 = check_v(result1, carry)
+    let v_check2 = check_v_add(result1, carry)
 
     let set_h = h_check1 or h_check2
     let set_c = c_check1 or c_check2
@@ -119,10 +170,32 @@ proc cp_a(z80: var Z80, val: uint8) =
 
     z80.flag_write(Flag.C, check_c_sub(a, val))
     z80.flag_set(Flag.N)
-    z80.flag_write(Flag.PV, check_v(a, val))
+    z80.flag_write(Flag.PV, check_v_add(a, val))
     z80.flag_write(Flag.H, set_h)
     z80.flag_write(Flag.Z, diff == 0)
     z80.flag_write(Flag.S, check_s(diff))
+
+proc cpd(z80: var Z80) =
+    let bc = z80.reg(Reg16.BC)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    let a = z80.reg(Reg8.A)
+
+    z80.reg_write(Reg16.BC, bc - 1)
+    z80.reg_write(Reg16.HL, hl - 1)
+
+    z80.flag_clear(Flag.N)
+
+proc cpi(z80: var Z80) =
+    let bc = z80.reg(Reg16.BC)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    let a = z80.reg(Reg8.A)
+
+    z80.reg_write(Reg16.BC, bc - 1)
+    z80.reg_write(Reg16.HL, hl + 1)
+
+    z80.flag_clear(Flag.N)
 
 # ?-P?ZS
 proc daa(z80: var Z80) =
@@ -157,7 +230,7 @@ proc dec(z80: var Z80, reg: Reg8) =
     let val = z80.reg(reg)
     let sub = val - 1
     let set_h = check_h_sub(val, 1)
-    let set_pv = check_v(val, 0xFF)
+    let set_pv = check_v_sub(val, 0xFF)
     let set_s = check_s(sub)
     z80.reg_write(reg, sub)
 
@@ -173,12 +246,24 @@ proc dec(z80: var Z80, reg: Reg16) =
     let sum = val + 1
     z80.reg_write(reg, sum)
 
+# -0P0ZS
+proc in_port(z80: var Z80, reg: Reg8) =
+    let port = z80.reg(Reg8.C)
+    let data = z80.port_read(port)
+    z80.reg_write(reg, data)
+
+    z80.flag_clear(Flag.N)
+    z80.flag_clear(Flag.H)
+    z80.flag_write(Flag.PV, check_p(data))
+    z80.flag_write(Flag.S, check_s(data))
+    z80.flag_write(Flag.Z, data == 0)
+
 # -NVHZS
 proc inc(z80: var Z80, reg: Reg8) =
     let val = z80.reg(reg)
     let sum = val + 1
     let set_h = check_h_add(val, 1)
-    let set_pv = check_v(val, 1)
+    let set_pv = check_v_add(val, 1)
     let set_s = check_s(sum)
     z80.reg_write(reg, sum)
 
@@ -193,6 +278,28 @@ proc inc(z80: var Z80, reg: Reg16) =
     let val = z80.reg(reg)
     let sum = val + 1
     z80.reg_write(reg, sum)
+
+proc ind(z80: var Z80) =
+    let b = z80.reg(Reg8.B)
+    let c = z80.reg(Reg8.C)
+    let data = z80.port_read(c)
+    let hl = z80.reg(Reg16.HL)
+    z80.ram_write(hl, data)
+
+    z80.reg_write(Reg16.HL, hl - 1)
+    z80.reg_write(Reg8.B, b - 1)
+    z80.flag_clear(Flag.N)
+
+proc ini(z80: var Z80) =
+    let b = z80.reg(Reg8.B)
+    let c = z80.reg(Reg8.C)
+    let data = z80.port_read(c)
+    let hl = z80.reg(Reg16.HL)
+    z80.ram_write(hl, data)
+
+    z80.reg_write(Reg16.HL, hl + 1)
+    z80.reg_write(Reg8.B, b - 1)
+    z80.flag_clear(Flag.N)
 
 # ------
 proc ld_into_ptr(z80: var Z80, src: Reg8, dst: Reg16) =
@@ -218,6 +325,36 @@ proc ld_outof_ptr(z80: var Z80, src: Reg16, dst: Reg8) =
     let val = z80.ram_read(address)
     z80.reg_write(dst, val)
 
+proc ldd(z80: var Z80) =
+    let bc = z80.reg(Reg16.BC)
+    let de = z80.reg(Reg16.DE)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    z80.ram_write(de, data)
+
+    z80.reg_write(Reg16.BC, bc - 1)
+    z80.reg_write(Reg16.DE, de - 1)
+    z80.reg_write(Reg16.HL, hl - 1)
+    z80.flag_clear(Flag.N)
+    z80.flag_clear(Flag.H)
+
+proc ldi(z80: var Z80) =
+    let bc = z80.reg(Reg16.BC)
+    let de = z80.reg(Reg16.DE)
+    let hl = z80.reg(Reg16.HL)
+
+    let de_data = z80.ram_read(de)
+    let hl_data = z80.ram_read(hl)
+    z80.ram_write(hl, de_data)
+    z80.ram_write(de, hl_data)
+
+    z80.reg_write(Reg16.DE, de + 1)
+    z80.reg_write(Reg16.HL, hl + 1)
+    z80.reg_write(Reg16.BC, bc - 1)
+
+    z80.flag_clear(Flag.N)
+    z80.flag_clear(Flag.H)
+
 # 00P0ZS
 proc or_a(z80: var Z80, val: uint8) =
     var a = z80.reg(Reg8.A)
@@ -230,6 +367,30 @@ proc or_a(z80: var Z80, val: uint8) =
     z80.flag_write(Flag.Z, a == 0)
     z80.flag_write(Flag.S, check_s(a))
     z80.reg_write(Reg8.A, a)
+
+# ------
+proc out_port(z80: var Z80, reg: Reg8) =
+    let data = z80.reg(reg)
+    let port = z80.reg(Reg8.C)
+    z80.port_write(port, data)
+
+proc outd(z80: var Z80) =
+    let b = z80.reg(Reg8.B)
+    let c = z80.reg(Reg8.C)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    z80.port_write(c, data)
+    z80.reg_write(Reg8.B, b - 1)
+    z80.reg_write(Reg16.HL, hl - 1)
+
+proc outi(z80: var Z80) =
+    let b = z80.reg(Reg8.B)
+    let c = z80.reg(Reg8.C)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    z80.port_write(c, data)
+    z80.reg_write(Reg8.B, b - 1)
+    z80.reg_write(Reg16.HL, hl + 1)
 
 # ------
 proc pop(z80: var Z80): uint16 =
@@ -331,6 +492,33 @@ proc shift_right_reg(z80: var Z80, reg: Reg8, arith: bool) =
     let shifted = z80.shift_right(byte, arith)
     z80.reg_write(reg, shifted)
 
+# C0VHZS
+proc sbc_hl(z80: var Z80, val: uint16) =
+    let carry: uint8 = if z80.flag(Flag.C): 1 else: 0
+    let hl = z80.reg(Reg16.HL)
+
+    let result1 = hl - val
+    let check_c1 = check_c_sub(hl, val)
+    let check_h1 = check_h_sub(hl, val)
+    let check_v1 = check_v_sub(hl, val)
+
+    let result2 = result1 - carry
+    let check_c2 = check_c_sub(result1, carry)
+    let check_h2 = check_h_sub(result1, carry)
+    let check_v2 = check_v_sub(result1, carry)
+
+    let set_h = check_h1 or check_h2
+    let set_c = check_c1 or check_c2
+    let set_v = check_v1 or check_v2
+
+    z80.flag_clear(Flag.N)
+    z80.flag_write(Flag.C, set_c)
+    z80.flag_write(Flag.H, set_h)
+    z80.flag_write(Flag.Z, result2 == 0)
+    z80.flag_write(Flag.PV, set_v)
+    z80.flag_write(Flag.S, check_s(result2))
+    z80.reg_write(Reg16.HL, result2)
+
 # CNVHZS
 proc sub_a(z80: var Z80, val: uint8, sbc: bool) =
     let carry: uint8 = if sbc and z80.flag(Flag.C): 1 else: 0
@@ -339,12 +527,12 @@ proc sub_a(z80: var Z80, val: uint8, sbc: bool) =
     let result1 = a - val
     let check_c1 = check_c_sub(a, val)
     let check_h1 = check_h_add(a, val)
-    let check_v1 = check_v(a, val)
+    let check_v1 = check_v_sub(a, val)
 
     let result2 = result1 - carry
     let check_c2 = check_c_sub(result1, carry)
     let check_h2 = check_h_add(result1, carry)
-    let check_v2 = check_v(result1, carry)
+    let check_v2 = check_v_sub(result1, carry)
 
     let set_h = check_h1 or check_h2
     let set_c = check_c1 or check_c2
@@ -1910,7 +2098,7 @@ proc call_ec(z80: var Z80): uint8 =
 
 # PREFIX ED
 proc prefix_ed(z80: var Z80): uint8 =
-    raise newException(UnimplementedError, "Prefix ED")
+    return z80.execute_ed_op()
 
 # XOR n
 proc xor_ee(z80: var Z80): uint8 =
@@ -2094,7 +2282,7 @@ proc inc_dd34(z80: var Z80): uint8 =
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_write(Flag.S, check_s(new_val))
-    z80.flag_write(Flag.PV, check_v(val, 1))
+    z80.flag_write(Flag.PV, check_v_add(val, 1))
     return 23
 
 # DEC (IX+d)
@@ -2110,7 +2298,7 @@ proc dec_dd35(z80: var Z80): uint8 =
     z80.flag_clear(Flag.N)
     z80.flag_write(Flag.Z, new_val == 0)
     z80.flag_write(Flag.S, check_s(new_val))
-    z80.flag_write(Flag.PV, check_v(val, 1))
+    z80.flag_write(Flag.PV, check_v_sub(val, 1))
     return 23
 
 # LD (IX+d), n
@@ -2307,6 +2495,392 @@ proc ld_ddf9(z80: var Z80): uint8 =
     z80.sp = ix
     return 10
 
+# IN B, (C)
+proc in_ed40(z80: var Z80): uint8 =
+    z80.in_port(Reg8.B)
+    return 12
+
+# OUT (C), B
+proc out_ed41(z80: var Z80): uint8 =
+    z80.out_port(Reg8.B)
+    return 12
+
+# SBC HL, BC
+proc sbc_ed42(z80: var Z80): uint8 =
+    let bc = z80.reg(Reg16.BC)
+    z80.sbc_hl(bc)
+    return 15
+
+# LD (nn), BC
+proc ld_ed43(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let bc = z80.reg(Reg16.BC)
+    z80.ram_write(address, bc.hi())
+    z80.ram_write(address + 1, bc.lo())
+    return 20
+
+# NEG
+proc neg_ed44(z80: var Z80): uint8 =
+    let a = z80.reg(Reg8.A)
+    let neg = 0 - a
+
+    z80.flag_write(Flag.C, check_c_sub(0u8, a))
+    z80.flag_set(Flag.N)
+    z80.flag_write(Flag.PV, check_v_sub(0, a))
+    z80.flag_write(Flag.Z, neg == 0)
+    z80.flag_write(Flag.S, check_s(neg))
+    z80.flag_write(Flag.H, check_h_sub(0, a))
+    z80.reg_write(Reg8.A, neg)
+    return 8
+
+# RETN
+proc retn_ed45(z80: var Z80): uint8 =
+    z80.pc = z80.pop()
+    return 14
+
+# IM 0
+proc im_ed46(z80: var Z80): uint8 =
+    z80.irq_mode(IrqModes.Mode0)
+    return 8
+
+# LD I, A
+proc ld_ed47(z80: var Z80): uint8 =
+    let a = z80.reg(Reg8.A)
+    z80.i = a
+    return 9
+
+# IN C, (C)
+proc in_ed48(z80: var Z80): uint8 =
+    z80.in_port(Reg8.C)
+    return 12
+
+# OUT (C), C
+proc out_ed49(z80: var Z80): uint8 =
+    z80.out_port(Reg8.C)
+    return 12
+
+# ADC HL, BC
+proc adc_ed4a(z80: var Z80): uint8 =
+    let bc = z80.reg(Reg16.BC)
+    z80.adc_hl(bc)
+    return 15
+
+# LD BC, (nn)
+proc ld_ed4b(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let data = z80.ram_read(address)
+    z80.reg_write(Reg16.BC, data)
+    return 20
+
+# RETI
+proc reti_ed4d(z80: var Z80): uint8 =
+    z80.pc = z80.pop()
+    return 14
+
+# LD R, A
+proc ld_ed4f(z80: var Z80): uint8 =
+    let a = z80.reg(Reg8.A)
+    z80.r = a
+    return 9
+
+# IN D, (C)
+proc in_ed50(z80: var Z80): uint8 =
+    z80.in_port(Reg8.D)
+    return 12
+
+# OUT (C), D
+proc out_ed51(z80: var Z80): uint8 =
+    z80.out_port(Reg8.D)
+    return 12
+
+# SBC HL, DE
+proc sbc_ed52(z80: var Z80): uint8 =
+    let de = z80.reg(Reg16.DE)
+    z80.sbc_hl(de)
+    return 15
+
+# LD (nn), DE
+proc ld_ed53(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let de = z80.reg(Reg16.DE)
+    z80.ram_write(address, de.hi())
+    z80.ram_write(address + 1, de.lo())
+    return 20
+
+# IM 1
+proc im_ed56(z80: var Z80): uint8 =
+    z80.irq_mode(IrqModes.Mode1)
+    return 8
+
+# LD A, I
+proc ld_ed57(z80: var Z80): uint8 =
+    let i = z80.i()
+    z80.reg_write(Reg8.A, i)
+    return 9
+
+# IN E, (C)
+proc in_ed58(z80: var Z80): uint8 =
+    z80.in_port(Reg8.E)
+    return 12
+
+# OUT (C), E
+proc out_ed59(z80: var Z80): uint8 =
+    z80.out_port(Reg8.E)
+    return 12
+
+# ADC HL, DE
+proc adc_ed5a(z80: var Z80): uint8 =
+    let de = z80.reg(Reg16.DE)
+    z80.adc_hl(de)
+    return 15
+
+# LD DE, (nn)
+proc ld_ed5b(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let data = z80.ram_read(address)
+    z80.reg_write(Reg16.DE, data)
+    return 20
+
+# IM 2
+proc im_ed5e(z80: var Z80): uint8 =
+    z80.irq_mode(IrqModes.Mode2)
+    return 8
+
+# LD A, R
+proc ld_ed5f(z80: var Z80): uint8 =
+    let r = z80.r()
+    z80.reg_write(Reg8.A, r)
+    return 9
+
+# IN H, (C)
+proc in_ed60(z80: var Z80): uint8 =
+    z80.in_port(Reg8.H)
+    return 12
+
+# OUT (C), H
+proc out_ed61(z80: var Z80): uint8 =
+    z80.out_port(Reg8.H)
+    return 12
+
+# SBC HL, HL
+proc sbc_ed62(z80: var Z80): uint8 =
+    let hl = z80.reg(Reg16.HL)
+    z80.sbc_hl(hl)
+    return 15
+
+# RRD
+proc rrd_ed67(z80: var Z80): uint8 =
+    # TODO: Figure out flags
+    let a = z80.reg(Reg8.A)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    let a_lo = a and 0xF
+    let data_lo = data and 0xF
+    let data_hi = (data and 0xF0) shr 4
+
+    let new_a = (a and 0xF0) or data_lo
+    let new_data = (a_lo shl 4) or data_hi
+    z80.reg_write(Reg8.A, new_a)
+    z80.ram_write(hl, new_data)
+    return 18
+
+# IN L, (C)
+proc in_ed68(z80: var Z80): uint8 =
+    z80.in_port(Reg8.L)
+    return 12
+
+# OUT (C), L
+proc out_ed69(z80: var Z80): uint8 =
+    z80.out_port(Reg8.L)
+    return 12
+
+# ADC HL, HL
+proc adc_ed6a(z80: var Z80): uint8 =
+    let hl = z80.reg(Reg16.HL)
+    z80.adc_hl(hl)
+    return 15
+
+# RLD
+proc rld_ed6f(z80: var Z80): uint8 =
+    # TODO: Figure out flags
+    let a = z80.reg(Reg8.A)
+    let hl = z80.reg(Reg16.HL)
+    let data = z80.ram_read(hl)
+    let a_lo = a and 0xF
+    let data_lo = data and 0xF
+    let data_hi = (data and 0xF0) shr 4
+
+    let new_a = (a and 0xF0) or data_hi
+    let new_data = (data_lo shl 4) or a_lo
+    z80.reg_write(Reg8.A, new_a)
+    z80.ram_write(hl, new_data)
+    return 18
+
+# SBC HL, SP
+proc sbc_ed72(z80: var Z80): uint8 =
+    let sp = z80.sp()
+    z80.sbc_hl(sp)
+    return 15
+
+# LD (nn), SP
+proc ld_ed73(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let sp = z80.sp()
+    z80.ram_write(address, sp.hi())
+    z80.ram_write(address + 1, sp.lo())
+    return 20
+
+# IN A, (C)
+proc in_ed78(z80: var Z80): uint8 =
+    z80.in_port(Reg8.A)
+    return 12
+
+# OUT (C), A
+proc out_ed79(z80: var Z80): uint8 =
+    z80.out_port(Reg8.A)
+    return 12
+
+# ADC HL, SP
+proc adc_ed7a(z80: var Z80): uint8 =
+    let sp = z80.sp()
+    z80.adc_hl(sp)
+    return 15
+
+# LD SP, (nn)
+proc ld_ed7b(z80: var Z80): uint8 =
+    let address = z80.fetch16()
+    let data = z80.ram_read(address)
+    z80.sp = data
+    return 20
+
+# LDI
+proc ldi_eda0(z80: var Z80): uint8 =
+    z80.ldi()
+    let bc = z80.reg(Reg16.BC)
+    z80.flag_write(Flag.PV, bc != 0)
+    return 16
+
+# CPI
+proc cpi_eda1(z80: var Z80): uint8 =
+    z80.cpi()
+    let bc = z80.reg(Reg16.BC)
+    z80.flag_write(Flag.PV, bc != 0)
+    return 16
+
+# INI
+proc ini_eda2(z80: var Z80): uint8 =
+    z80.ini()
+    return 16
+
+# OUTI
+proc outi_eda3(z80: var Z80): uint8 =
+    z80.outi()
+    return 16
+
+# LDD
+proc ldd_eda8(z80: var Z80): uint8 =
+    z80.ldd()
+    let bc = z80.reg(Reg16.BC)
+    z80.flag_write(Flag.PV, bc != 0)
+    return 16
+
+# CPD
+proc cpd_eda9(z80: var Z80): uint8 =
+    z80.cpd()
+    let bc = z80.reg(Reg16.BC)
+    z80.flag_write(Flag.PV, bc != 0)
+    return 16
+
+# IND
+proc ind_edaa(z80: var Z80): uint8 =
+    z80.ind()
+    return 16
+
+# OUTD
+proc outd_edab(z80: var Z80): uint8 =
+    z80.outd()
+    return 16
+
+# LDIR
+proc ldir_edb0(z80: var Z80): uint8 =
+    z80.ldi()
+    let bc = z80.reg(Reg16.BC)
+    if bc != 0:
+        z80.ldi()
+        return 21
+    else:
+        return 16
+
+# CPIR
+proc cpir_edb1(z80: var Z80): uint8 =
+    z80.cpi()
+    let bc = z80.reg(Reg16.BC)
+    if bc != 0:
+        z80.cpi()
+        return 21
+    else:
+        return 16
+
+# INIR
+proc inir_edb2(z80: var Z80): uint8 =
+    z80.ini()
+    let b = z80.reg(Reg8.B)
+    if b != 0:
+        z80.ini()
+        return 21
+    else:
+        return 16
+
+# OTIR
+proc otir_edb3(z80: var Z80): uint8 =
+    z80.outi()
+    let b = z80.reg(Reg8.B)
+    if b != 0:
+        z80.outi()
+        return 21
+    else:
+        return 16
+
+# LDDR
+proc lddr_edb8(z80: var Z80): uint8 =
+    z80.ldd()
+    let bc = z80.reg(Reg16.BC)
+    if bc != 0:
+        z80.ldd()
+        return 21
+    else:
+        return 16
+
+# CPDR
+proc cpdr_edb9(z80: var Z80): uint8 =
+    z80.cpd()
+    let bc = z80.reg(Reg16.BC)
+    if bc != 0:
+        z80.cpd()
+        return 21
+    else:
+        return 16
+
+# INDR
+proc indr_edba(z80: var Z80): uint8 =
+    z80.ind()
+    let b = z80.reg(Reg8.B)
+    if b != 0:
+        z80.ind()
+        return 21
+    else:
+        return 16
+
+# OTDR
+proc otdr_edbb(z80: var Z80): uint8 =
+    z80.outd()
+    let b = z80.reg(Reg8.B)
+    if b != 0:
+        z80.outd()
+        return 21
+    else:
+        return 16
+
 proc invalid(z80: var Z80): uint8 =
     raise newException(InvalidError, "Invalid opcode")
 
@@ -2348,6 +2922,26 @@ const DD_OPCODES = [
     invalid, invalid,  invalid, invalid,  invalid,  invalid,   invalid, invalid,  invalid, invalid,  invalid,  invalid,     invalid, invalid, invalid,  invalid, # $D0
     invalid, pop_dde1, invalid, ex_dde3,  invalid,  push_dde5, invalid, invalid,  invalid, jp_dde9,  invalid,  invalid,     invalid, invalid, invalid,  invalid, # $E0
     invalid, invalid,  invalid, invalid,  invalid,  invalid,   invalid, invalid,  invalid, ld_ddf9,  invalid,  invalid,     invalid, invalid, invalid,  invalid, # $F0
+]
+
+const ED_OPCODES = [
+#   $00,       $01,       $02,       $03,       $04,      $05,       $06,     $07,      $08,       $09,       $0A,       $0B,       $0C,     $0D,       $0E,     $0F
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $00
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $10
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $20
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $30
+    in_ed40,   out_ed41,  sbc_ed42,  ld_ed43,   neg_ed44, retn_ed45, im_ed46, ld_ed47,  in_ed48,   out_ed49,  adc_ed4a,  ld_ed4b,   invalid, reti_ed4d, invalid, ld_ed4f, # $40
+    in_ed50,   out_ed51,  sbc_ed52,  ld_ed53,   invalid,  invalid,   im_ed56, ld_ed57,  in_ed58,   out_ed59,  adc_ed5a,  ld_ed5b,   invalid, invalid,   im_ed5e, ld_ed5f, # $50
+    in_ed60,   out_ed61,  sbc_ed62,  invalid,   invalid,  invalid,   invalid, rrd_ed67, in_ed68,   out_ed69,  adc_ed6a,  invalid,   invalid, invalid,   invalid, rld_ed6f, # $60
+    invalid,   invalid,   sbc_ed72,  ld_ed73,   invalid,  invalid,   invalid, invalid,  in_ed78,   out_ed79,  adc_ed7a,  ld_ed7b,   invalid, invalid,   invalid, invalid, # $70
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $80
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $90
+    ldi_eda0,  cpi_eda1,  ini_eda2,  outi_eda3, invalid,  invalid,   invalid, invalid,  ldd_eda8,  cpd_eda9,  ind_edaa,  outd_edab, invalid, invalid,   invalid, invalid, # $A0
+    ldir_edb0, cpir_edb1, inir_edb2, otir_edb3, invalid,  invalid,   invalid, invalid,  lddr_edb8, cpdr_edb9, indr_edba, otdr_edbb, invalid, invalid,   invalid, invalid, # $B0
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $C0
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $D0
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $E0
+    invalid,   invalid,   invalid,   invalid,   invalid,  invalid,   invalid, invalid,  invalid,   invalid,   invalid,   invalid,   invalid, invalid,   invalid, invalid, # $F0
 ]
 
 proc decode_cb_reg(op: uint8): Reg8 =
@@ -2502,6 +3096,11 @@ proc execute_cb_op(z80: var Z80): uint8 =
 proc execute_dd_op(z80: var Z80): uint8 =
     let opcode = z80.fetch()
     let op_fn = DD_OPCODES[opcode]
+    return z80.op_fn()
+
+proc execute_ed_op(z80: var Z80): uint8 =
+    let opcode = z80.fetch()
+    let op_fn = ED_OPCODES[opcode]
     return z80.op_fn()
 
 proc execute*(z80: var Z80): uint8 =
